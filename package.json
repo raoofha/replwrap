@@ -1,0 +1,20 @@
+{
+  "name": "replwrap",
+  "version": "1.0.0-beta",
+  "description": "wrap a program to accept input from websocket",
+  "bin": {
+    "replwrap": "replwrap.js"
+  },
+  "main": "replwrap.js",
+  "author": "Raoof",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/raoofha/replwrap/issues"
+  },
+  "homepage": "https://github.com/raoofha/replwrap#readme",
+  "dependencies": {
+    "minimist": "^1.2.0",
+    "ws": "^3.2.0"
+  },
+  "preferGlobal": "true"
+}
