@@ -1,6 +1,6 @@
 {
   "name": "replwrap",
-  "version": "1.0.0-beta",
+  "version": "1.0.1-beta",
   "description": "wrap a program to accept input from websocket",
   "bin": {
     "replwrap": "replwrap.js"
@@ -16,5 +16,9 @@
     "minimist": "^1.2.0",
     "ws": "^3.2.0"
   },
-  "preferGlobal": "true"
+  "preferGlobal": "true",
+  "keywords": [
+    "websocket",
+    "repl"
+  ]
 }
