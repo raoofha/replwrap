@@ -23,44 +23,11 @@ EOF
 endfunc
 function! ReplwrapSetHost(host)
 python3 << EOF
-host = vim.eval("a:host")
+host = "ws://"+vim.eval("a:host")
 EOF
 endfunc
 
-function! ReplwrapConnect(host)
-  "let s:path = expand('<sfile>:p')
-  "py3file replwrap.py
-
-python3 << EOF
-#from websocket import create_connection
-ws = create_connection(vim.eval("a:host"))
-#import websocket
-
-#def on_message(ws, message):
-#    print(message)
-#
-#def on_error(ws, error):
-#    print(error)
-#
-#def on_close(ws):
-#    print("### closed ###")
-#
-#def on_open(ws):
-#    print("socket opened")
-#
-## websocket.enableTrace(True)
-#ws = websocket.WebSocketApp("ws://localhost:60999/",
-#                            on_message=on_message,
-#                            on_error=on_error,
-#                            on_close=on_close)
-#ws.on_open = on_open
-##ws.run_forever()
-#
-EOF
-endfunc
-
-
-function! ReplwrapSendCurrentLine()
+function! s:ReplwrapSendCurrentLine()
 python3 << EOF
 ws = create_connection(host)
 ws.send(vim.current.line)
@@ -70,7 +37,7 @@ print("sent to repl")
 EOF
 endfunc
 
-function! ReplwrapSendCurrentSelection() range
+function! s:ReplwrapSendCurrentSelection() range
 python3 << EOF
 ws = create_connection(host)
 buf = vim.current.buffer
@@ -85,11 +52,46 @@ print("sent to repl")
 EOF
 endfunc
 
-"command! -nargs=0 ReplwrapConnect call ReplwrapConnect()
-nmap <space> :call ReplwrapSendCurrentLine()<cr>
-vmap <space> :call ReplwrapSendCurrentSelection()<cr>
 
-"call ReplwrapConnect()
-autocmd BufEnter *.clj,*.cljc call ReplwrapSetPort("60999")
+let fireplace#skip = 'synIDattr(synID(line("."),col("."),1),"name") =~? "comment\\|string\\|char\\|regexp"'
+function! s:ReplwrapCurrentForm() abort
+  let sel_save = &selection
+  let cb_save = &clipboard
+  let reg_save = @@
+  try
+    set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+    let open = '[[{(]'
+    let close = '[]})]'
+    if getline('.')[col('.')-1] =~# close
+      let [line1, col1] = searchpairpos(open, '', close, 'bn', g:fireplace#skip)
+      let [line2, col2] = [line('.'), col('.')]
+    else
+      let [line1, col1] = searchpairpos(open, '', close, 'bcn', g:fireplace#skip)
+      let [line2, col2] = searchpairpos(open, '', close, 'n', g:fireplace#skip)
+    endif
+    while col1 > 1 && getline(line1)[col1-2] =~# '[#''`~@]'
+      let col1 -= 1
+    endwhile
+    call setpos("'[", [0, line1, col1, 0])
+    call setpos("']", [0, line2, col2, 0])
+    silent exe "normal! `[v`]y"
+    redraw
+python3 << EOF
+ws = create_connection(host)
+ws.send(vim.eval("@@"))
+print("sent to repl")
+EOF
+  finally
+    let @@ = reg_save
+    let &selection = sel_save
+    let &clipboard = cb_save
+  endtry
+endfunction
+
+au FileType python,javascript nmap <space> :call <SID>ReplwrapSendCurrentLine()<cr>
+au FileType clojure nmap <space> :call <SID>ReplwrapCurrentForm()<cr>
+au FileType clojure,python,javascript vmap <space> :call <SID>ReplwrapSendCurrentSelection()<cr>
+
+autocmd BufEnter *.clj,*.cljc,*.cljs call ReplwrapSetPort("60999")
 autocmd BufEnter *.py call ReplwrapSetPort("61000")
 autocmd BufEnter *.js call ReplwrapSetPort("61001")
